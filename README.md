@@ -1,11 +1,14 @@
-# <img src="https://raw.githack.com/FortAwesome/Font-Awesome/master/svgs/solid/car.svg" card_color="#999999" width="50" height="50" style="vertical-align:bottom"/> Radio
-Plays radiostations
+# <img src="radio.svg" width="50" height="50" style="vertical-align:bottom"/> Radio
+Play more than 25.000 radio stations 
 
 ## About
-Plays radiostations
+Playradio from [Radio Browser](https://www.radio-browser.info) 
+
+Radio Browser is a community with the aim of collecting as many internet radio and TV stations as possible and make those freely avvaible for  everyone to use. 
+
 
 ## Examples
-* "Play rafio"
+* "Play BBC Radio 1"
 
 ## Credits
 @andlo
@@ -15,4 +18,8 @@ Plays radiostations
 Entertainment
 
 ## Tags
+#Radio Browser
+#radio
+#stream
+#streams
 
