@@ -45,7 +45,7 @@ class Radio(CommonPlaySkill):
         self.log.info('playing....')
         self.log.info(url)
         self.audioservice.play(url)
-        self.audioservice.play()
+
 
 
 def create_skill():
