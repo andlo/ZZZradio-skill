@@ -17,15 +17,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-from os.path import join, abspath, dirname
 import subprocess
 import traceback
 from urllib.parse import quote
+import re
+import requests
 
 from mycroft.messagebus.message import Message
 from mycroft.skills.common_play_skill import CommonPlaySkill, CPSMatchLevel
 from mycroft.util import get_cache_directory
-from mycroft.util.parse import match_one
 
 from pyradios import RadioBrowser
 
@@ -34,33 +34,42 @@ class Radio(CommonPlaySkill):
     def __init__(self):
         super().__init__(name="Radio")
         self.curl = None
-        self.now_playing = None
+        self.regexes = {}
         self.STREAM = '{}/stream'.format(get_cache_directory('RadioSkill'))
 
     def CPS_match_query_phrase(self, phrase):
-        rb = RadioBrowser()
-        rbstations = rb.search(name=phrase)
-        stations = {}
-        for rbstation in rbstations:
-            key = rbstation['name']
-            url = rbstation['url_resolved']
-            stations[key] = url
-        # Get match and confidence
-        match, confidence = match_one(phrase, stations)
-        # If the confidence is high enough return a match
-        self.log.info(match)
-        if confidence > 0.5:
-            return (match, CPSMatchLevel.EXACT, {"station": phrase, "url": match})
-        # Otherwise return None
-        else:
+        # Look for regex matches
+        # Play (radio|station|stream) <data>
+        match = re.search(self.translate_regex('radio'), phrase)
+        try:
+            data = re.sub(self.translate_regex('radio'), '', phrase)
+            rb = RadioBrowser()
+            stations = rb.search(name=data,bitrateMin='128')
+            stations != []
+            self.log.info('CPS Match (radio): ' + stations[0]['name'] +
+                          ' | ' + stations[0]['url'])
+
+            if match:
+                return (stations[0]['name'],
+                        CPSMatchLevel.EXACT,
+                        {"station": stations[0]["name"],
+                         "url": stations[0]["url"],
+                         "image": stations[0]['favicon']})
+            else:
+                return (stations[0]['name'],
+                        CPSMatchLevel.TITLE,
+                        {"station": stations[0]["name"],
+                         "url": stations[0]["url"],
+                         "image": stations[0]['favicon']})
+        except Exception:
             return None
 
     def CPS_start(self, phrase, data):
-        url = data['url']        
+        url = data['url']
         station = data['station']
+        image = data['image']
         try:
             self.stop()
-            self.now_playing = station
 
             # (Re)create Fifo
             if os.path.exists(self.STREAM):
@@ -68,19 +77,19 @@ class Radio(CommonPlaySkill):
             os.mkfifo(self.STREAM)
 
             # Speak intro while downloading in background
-            self.speak_dialog('play.radio', data={"station": self.now_playing}, wait=True)
+            self.speak_dialog('play.radio',
+                              data={"station": station},
+                              wait=True)
 
             self.log.debug('Running curl {}'.format(url))
-            args = ['curl', '-L', quote(url, safe=":/"), '-o', self.STREAM]
+            args = ['curl', '-L', '-s', quote(url, safe=":/"),
+                    '-o', self.STREAM]
             self.curl = subprocess.Popen(args)
 
             # Begin the radio stream
             self.log.info('Station url: {}'.format(url))
             self.CPS_play(('file://' + self.STREAM, 'audio/mpeg'))
-            
-            # TODO download image from RadioBrowser so we could show it n display
-            # self.CPS_send_status(image=image or image_path('generic.png'),
-            #                     track=self.now_playing)
+            self.CPS_send_status(image=image, track=station)
 
         except Exception as e:
             self.log.error("Error: {0}".format(e))
@@ -100,7 +109,7 @@ class Radio(CommonPlaySkill):
             self.CPS_send_status()
             return True
 
-    def PlayCPS_send_status(self, artist='', track='', image=''):
+    def CPS_send_status(self, artist='', track='', image=''):
         data = {'skill': self.name,
                 'artist': artist,
                 'track': track,
@@ -108,6 +117,23 @@ class Radio(CommonPlaySkill):
                 'status': None  # TODO Add status system
                 }
         self.bus.emit(Message('play:status', data))
+
+    # Get the correct localized regex
+    def translate_regex(self, regex):
+        if regex not in self.regexes:
+            path = self.find_resource(regex + '.regex')
+            if path:
+                with open(path) as f:
+                    string = f.read().strip()
+                self.regexes[regex] = string
+        return self.regexes[regex]
+
+    def exists_url(url):
+        r = requests.head(url)
+        if r.status_code < 400:
+            return True
+        else:
+            return False
 
 
 def create_skill():

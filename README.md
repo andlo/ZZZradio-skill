@@ -8,7 +8,13 @@ Radio Browser is a community with the aim of collecting as many internet radio a
 
 
 ## Examples
-* "Play BBC Radio 1"
+* "Play (radio|station|stream) BBC Radio 1"
+* "Play (radio|station|stream) KEXP"
+* "Play (radio|station|stream) DR P1"
+* "Play (radio|station|stream)1LIVE"
+* "Play (radio|station|stream) Deutschlandfunk"
+
+
 
 ## Credits
 @andlo
