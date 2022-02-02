@@ -44,7 +44,7 @@ class Radio(CommonPlaySkill):
         try:
             data = re.sub(self.translate_regex('radio'), '', phrase)
             rb = RadioBrowser()
-            stations = rb.search(name=data,bitrateMin='128')
+            stations = rb.search(name=data,bitrate_min=128)
             stations != []
             self.log.info('CPS Match (radio): ' + stations[0]['name'] +
                           ' | ' + stations[0]['url'])
@@ -108,15 +108,6 @@ class Radio(CommonPlaySkill):
                 self.curl = None
             self.CPS_send_status()
             return True
-
-    def CPS_send_status(self, artist='', track='', image=''):
-        data = {'skill': self.name,
-                'artist': artist,
-                'track': track,
-                'image': image,
-                'status': None  # TODO Add status system
-                }
-        self.bus.emit(Message('play:status', data))
 
     # Get the correct localized regex
     def translate_regex(self, regex):
